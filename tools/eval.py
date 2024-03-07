@@ -122,7 +122,7 @@ def main():
 
 
     end = timeit.default_timer()
-    logger.info('Mins: %d' % np.int((end-start)/60))
+    logger.info('Mins: %d' % np.int64((end-start)/60))
     logger.info('Done')
 
 
