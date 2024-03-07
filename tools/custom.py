@@ -74,6 +74,8 @@ def load_pretrained(model, pretrained):
 if __name__ == '__main__':
     args = parse_args()
     images_list = glob.glob(args.r+'*'+args.t)
+    print(args.r, args.t)
+    print(f'len(images_list) : {len(images_list)}')
     sv_path = args.r+'outputs/'
     
     model = models.pidnet.get_pred_model(args.a, 19 if args.c else 11)
