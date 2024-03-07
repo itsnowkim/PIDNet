@@ -140,11 +140,12 @@ class PIDNet(nn.Module):
 
         x = self.conv1(x)
         x = self.layer1(x)
-        x = self.relu(self.layer2(self.relu(x)))
-        x_ = self.layer3_(x)
-        x_d = self.layer3_d(x)
+        x = self.relu(self.layer2(self.relu(x))) # stage 2
+        x_ = self.layer3_(x) # P, stage 2->3
+        x_d = self.layer3_d(x) # D, stage 2->3
         
-        x = self.relu(self.layer3(x))
+        # stage 3
+        x = self.relu(self.layer3(x)) # I
         x_ = self.pag3(x_, self.compression3(x))
         x_d = x_d + F.interpolate(
                         self.diff3(x),
@@ -153,6 +154,7 @@ class PIDNet(nn.Module):
         if self.augment:
             temp_p = x_
         
+        # stage 4
         x = self.relu(self.layer4(x))
         x_ = self.layer4_(self.relu(x_))
         x_d = self.layer4_d(self.relu(x_d))
@@ -164,7 +166,8 @@ class PIDNet(nn.Module):
                         mode='bilinear', align_corners=algc)
         if self.augment:
             temp_d = x_d
-            
+
+        # stage 5
         x_ = self.layer5_(self.relu(x_))
         x_d = self.layer5_d(self.relu(x_d))
         x = F.interpolate(
