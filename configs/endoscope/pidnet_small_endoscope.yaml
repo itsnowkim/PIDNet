@@ -13,7 +13,7 @@ DATASET:
   ROOT: data/
   TEST_SET: 'list/endoscope/val.lst'
   TRAIN_SET: 'list/endoscope/train.lst'
-  NUM_CLASSES: 19
+  NUM_CLASSES: 11
 MODEL:
   NAME: pidnet_small
   NUM_OUTPUTS: 2
@@ -26,13 +26,13 @@ LOSS:
   SB_WEIGHTS: 1.0
 TRAIN:
   IMAGE_SIZE:
-  - 1024
-  - 1024
-  BASE_SIZE: 2048
+  - 1920
+  - 1080
+  BASE_SIZE: 1920
   BATCH_SIZE_PER_GPU: 6
   SHUFFLE: true
   BEGIN_EPOCH: 0
-  END_EPOCH: 484
+  END_EPOCH: 450
   RESUME: false
   OPTIMIZER: sgd
   LR: 0.01
@@ -45,9 +45,9 @@ TRAIN:
   SCALE_FACTOR: 16
 TEST:
   IMAGE_SIZE:
-  - 2048
-  - 1024
-  BASE_SIZE: 2048
+  - 1920
+  - 1080
+  BASE_SIZE: 1920
   BATCH_SIZE_PER_GPU: 6
   FLIP_TEST: false
   MULTI_SCALE: false
