@@ -185,8 +185,7 @@ def main():
                   trainloader, optimizer, model, writer_dict)
 
         if flag_rm == 1 or (epoch % 5 == 0 and epoch < real_end - 100) or (epoch >= real_end - 100):
-            valid_loss, mean_IoU, IoU_array = validate(config, 
-                        testloader, model, writer_dict)
+            valid_loss, mean_IoU, IoU_array = validate(config, testloader, model, writer_dict)
         if flag_rm == 1:
             flag_rm = 0
 
@@ -204,7 +203,10 @@ def main():
                     os.path.join(final_output_dir, 'best.pt'))
         msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}'.format(
                     valid_loss, mean_IoU, best_mIoU)
-        logging.info(msg)
+        
+        # validate 를 하지 않은 경우 msg 출력하지 않음
+        if flag_rm == 1 or (epoch % 5 == 0 and epoch < real_end - 100) or (epoch >= real_end - 100):
+            logging.info(msg)
         
         # class 이름도 함께 출력하기
         if train_dataset.class_index_dict:
@@ -216,6 +218,7 @@ def main():
         else:
             logging.info(IoU_array)
 
+    # save final state
     torch.save(model.module.state_dict(),
             os.path.join(final_output_dir, 'final_state.pt'))
 
