@@ -1,0 +1,5 @@
+# train
+python tools/train.py --cfg configs/endoscope/pidnet_small_endoscope.yaml
+
+# infer
+python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endoscope/best.pt'

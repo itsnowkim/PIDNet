@@ -43,6 +43,9 @@ class Endoscope(BaseDataset):
         self.label_mapping = {-1: ignore_label, 0: 0, 
                               1: 1, 2:2, 3:3, 4:4, 5:5,
                               6:6, 7:7, 8:8, 9:9, 10:10 }
+        self.class_index_dict = {0: 'Bone', 1: 'LF', 2: 'Vessel', 3: 'Fat',
+                                 4: 'SoftTissue', 5: 'Disc', 6: 'Instrument',
+                                 7: 'Cage', 8: 'Screw', 9: 'Care', 10: 'BF'}
         
         self.class_weights = None
         

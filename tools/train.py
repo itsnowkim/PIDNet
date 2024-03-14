@@ -205,9 +205,16 @@ def main():
         msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}'.format(
                     valid_loss, mean_IoU, best_mIoU)
         logging.info(msg)
-        logging.info(IoU_array)
+        
+        # class 이름도 함께 출력하기
+        if train_dataset.class_index_dict:
+            class_index_dict = train_dataset.class_index_dict
 
-
+            for index, IoU_value in enumerate(IoU_array):
+                class_name = class_index_dict.get(index, f"Unknown class index: {index}")
+                logging.info(f"{class_name}: {IoU_value}")
+        else:
+            logging.info(IoU_array)
 
     torch.save(model.module.state_dict(),
             os.path.join(final_output_dir, 'final_state.pt'))
