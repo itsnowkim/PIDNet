@@ -106,6 +106,8 @@ class BaseDataset(data.Dataset):
         # custom dataset 일 경우, 중앙 crop 먼저 진행
         if is_custom:
             image, label, edge = self.center_crop(image, label, edge)
+            # base size update
+            self.base_size = max(image.shape[:2])
 
         long_size = np.int32(self.base_size * rand_scale + 0.5)
         h, w = image.shape[:2]
@@ -165,6 +167,7 @@ class BaseDataset(data.Dataset):
     
     def gen_custom_sample(self, image, label,
                    multi_scale=True, is_flip=True, edge_pad=True, edge_size=4, city=True):
+
         # construct edge for edge detection
         edge = cv2.Canny(label, 0.1, 0.2)
         kernel = np.ones((edge_size, edge_size), np.uint8)
@@ -173,10 +176,11 @@ class BaseDataset(data.Dataset):
             edge = np.pad(edge, ((y_k_size,y_k_size),(x_k_size,x_k_size)), mode='constant')
         edge = (cv2.dilate(edge, kernel, iterations=1)>50)*1.0
         
+        # (1080, 1920)
         if multi_scale:
             rand_scale = 0.5 + random.randint(0, self.scale_factor) / 10.0
             image, label, edge = self.multi_scale_aug(image, label, edge, rand_scale=rand_scale,
-                                                      rand_crop=False, is_custom=True)
+                                                    is_custom=True)
 
         image = self.input_transform(image, city=city)
         label = self.label_transform(label)

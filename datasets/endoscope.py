@@ -19,8 +19,8 @@ class Endoscope(BaseDataset):
                  multi_scale=True, 
                  flip=True, 
                  ignore_label=255, 
-                 base_size=1920, # 긴게 base size
-                 crop_size=(640, 640), # width, height 동일하게 설정하면 no crop 으로 학습 가능
+                 base_size=1920, # 긴 게 base size
+                 crop_size=(1072, 1920), # height, width 동일하게 설정하면 no crop 으로 학습 가능
                  scale_factor=16,
                  mean=[0.485, 0.456, 0.406], 
                  std=[0.229, 0.224, 0.225],
@@ -98,8 +98,9 @@ class Endoscope(BaseDataset):
 
         # random crop 적용하는 부분
         image, label, edge = self.gen_custom_sample(image, label, 
-                                self.multi_scale, self.flip, edge_pad=False, edge_size=self.bd_dilate_size)
+                                self.multi_scale, self.flip, edge_size=self.bd_dilate_size)
 
+        # import pdb; pdb.set_trace();
         return image.copy(), label.copy(), edge.copy(), np.array(size), name
 
     
