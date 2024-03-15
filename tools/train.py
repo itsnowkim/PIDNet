@@ -208,15 +208,15 @@ def main():
         if flag_rm == 1 or (epoch % 5 == 0 and epoch < real_end - 100) or (epoch >= real_end - 100):
             logging.info(msg)
         
-        # class 이름도 함께 출력하기
-        if train_dataset.class_index_dict:
-            class_index_dict = train_dataset.class_index_dict
+            # class 이름도 함께 출력하기
+            if train_dataset.class_index_dict:
+                class_index_dict = train_dataset.class_index_dict
 
-            for index, IoU_value in enumerate(IoU_array):
-                class_name = class_index_dict.get(index, f"Unknown class index: {index}")
-                logging.info(f"{class_name}: {IoU_value}")
-        else:
-            logging.info(IoU_array)
+                for index, IoU_value in enumerate(IoU_array):
+                    class_name = class_index_dict.get(index, f"Unknown class index: {index}")
+                    logging.info(f"{class_name}: {IoU_value}")
+            else:
+                logging.info(IoU_array)
 
     # save final state
     torch.save(model.module.state_dict(),

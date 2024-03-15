@@ -1,5 +1,6 @@
 # data file
 data/
+samples/custom
 
 # cache file
 */__pycache__/

@@ -107,7 +107,8 @@ class BaseDataset(data.Dataset):
         if is_custom:
             image, label, edge = self.center_crop(image, label, edge)
             # base size update
-            self.base_size = max(image.shape[:2])
+            if self.base_size > max(image.shape[:2]):
+                self.base_size = max(image.shape[:2])
 
         long_size = np.int32(self.base_size * rand_scale + 0.5)
         h, w = image.shape[:2]

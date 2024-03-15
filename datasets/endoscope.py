@@ -20,7 +20,7 @@ class Endoscope(BaseDataset):
                  flip=True, 
                  ignore_label=255, 
                  base_size=1920, # 긴 게 base size
-                 crop_size=(1072, 1920), # height, width 동일하게 설정하면 no crop 으로 학습 가능
+                 crop_size=(960, 960), # height, width 동일하게 설정하면 no crop 으로 학습 가능
                  scale_factor=16,
                  mean=[0.485, 0.456, 0.406], 
                  std=[0.229, 0.224, 0.225],
