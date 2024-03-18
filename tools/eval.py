@@ -118,7 +118,15 @@ def main():
             Mean_Acc: {: 4.4f}, Class IoU: '.format(mean_IoU, 
             pixel_acc, mean_acc)
         logging.info(msg)
-        logging.info(IoU_array)
+        # class 이름도 함께 출력하기
+        if test_dataset.class_index_dict:
+            class_index_dict = test_dataset.class_index_dict
+
+            for index, IoU_value in enumerate(IoU_array):
+                class_name = class_index_dict.get(index, f"Unknown class index: {index}")
+                logging.info(f"{class_name}: {IoU_value}")
+        else:
+            logging.info(IoU_array)
 
 
     end = timeit.default_timer()
