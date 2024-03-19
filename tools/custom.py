@@ -172,6 +172,7 @@ if __name__ == '__main__':
             img = img.transpose((2, 0, 1)).copy()
             img = torch.from_numpy(img).unsqueeze(0).cuda()
             pred = model(img)
+            # print(pred.shape)
 
             # pred size 맞춰주기
             pred = F.interpolate(pred, size=original_img.shape[:2], 

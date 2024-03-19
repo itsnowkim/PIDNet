@@ -125,6 +125,8 @@ def main():
             for index, IoU_value in enumerate(IoU_array):
                 class_name = class_index_dict.get(index, f"Unknown class index: {index}")
                 logging.info(f"{class_name}: {IoU_value}")
+
+            logging.info(f"exist class mIoU : {IoU_array[IoU_array != 0].mean()}")
         else:
             logging.info(IoU_array)
 
