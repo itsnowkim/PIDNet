@@ -40,13 +40,17 @@ class Endoscope(BaseDataset):
 
         self.files = self.read_files()
 
-        self.label_mapping = {-1: ignore_label, 0: 0, 
+        # id 시작은 1번부터 시작. 0 번은 배경
+        self.label_mapping = {-1: ignore_label, 0: ignore_label, 
                               1: 1, 2:2, 3:3, 4:4, 5:5,
-                              6:6, 7:7, 8:8, 9:9, 10:10 }
-        self.class_index_dict = {0: 'Bone', 1: 'LF', 2: 'Vessel', 3: 'Fat',
-                                 4: 'SoftTissue', 5: 'Disc', 6: 'Instrument',
-                                 7: 'Cage', 8: 'Screw', 9: 'Care', 10: 'BF'}
+                              6:6, 7:7, 8:8, 9:9, 10:10, 11: 11}
+        self.class_index_dict = {
+            1: 'Bone', 2: 'LF', 3: 'Vessel', 4: 'Fat',
+            5: 'SoftTissue', 6: 'Disc', 7: 'Instrument',
+            8: 'Cage', 9: 'Screw', 10: 'Care', 11: 'BF'
+        }
         
+        # class weight 정의 - distribution 에 의해 정의?
         self.class_weights = None
         
         self.bd_dilate_size = bd_dilate_size
