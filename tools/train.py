@@ -213,7 +213,8 @@ def main():
                 class_index_dict = train_dataset.class_index_dict
 
                 for index, IoU_value in enumerate(IoU_array):
-                    class_name = class_index_dict.get(index, f"Unknown class index: {index}")
+                    # index 0번은 ignore, 배경이기 때문에 index 1번부터 get
+                    class_name = class_index_dict.get(index+1, f"Unknown class index: {index}")
                     logging.info(f"{class_name}: {IoU_value}")
             else:
                 logging.info(IoU_array)
