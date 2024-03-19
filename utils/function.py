@@ -116,7 +116,12 @@ def validate(config, testloader, model, writer_dict):
         res = confusion_matrix[..., i].sum(0)
         tp = np.diag(confusion_matrix[..., i])
         IoU_array = (tp / np.maximum(1.0, pos + res - tp))
-        mean_IoU = IoU_array.mean()
+
+        # customdataset 에 한정해서 데이터가 없는 경우 IoU 가 0이 나오므로, 해당 경우는 연산에서 제외.
+        # 값이 0인 요소를 제외하고 평균을 계산합니다.
+        # mean_IoU = IoU_array.mean()
+        mean_IoU = IoU_array[IoU_array != 0].mean()
+
         
         logging.info('{} {} {}'.format(i, IoU_array, mean_IoU))
 

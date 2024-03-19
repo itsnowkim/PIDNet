@@ -151,7 +151,7 @@ if __name__ == '__main__':
     width, height = args.s
     if args.custom:
         # construct model
-        model = models.pidnet.get_pred_model(args.a, 11, True) # 12 로 수정 필요
+        model = models.pidnet.get_pred_model(args.a, 12, True) # 12 로 수정 필요
         # load model pretrained
         model = load_pretrained2(model, args.p).cuda()
     else:
