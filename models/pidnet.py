@@ -218,7 +218,7 @@ def get_seg_model(cfg, imgnet_pretrained):
     
     return model
 
-def get_pred_model(name, num_classes):
+def get_pred_model(name, num_classes, custom=False):
     
     if 's' in name:
         model = PIDNet(m=2, n=3, num_classes=num_classes, planes=32, ppm_planes=96, head_planes=128, augment=False)
@@ -226,6 +226,19 @@ def get_pred_model(name, num_classes):
         model = PIDNet(m=2, n=3, num_classes=num_classes, planes=64, ppm_planes=96, head_planes=128, augment=False)
     else:
         model = PIDNet(m=3, n=4, num_classes=num_classes, planes=64, ppm_planes=112, head_planes=256, augment=False)
+    
+    # load pretrained
+    if custom:
+        print(custom)
+        pretrained_state = torch.load("pretrained_models/imagenet/PIDNet_S_ImageNet.pth.tar", map_location='cpu')['state_dict'] 
+        model_dict = model.state_dict()
+        pretrained_state = {k: v for k, v in pretrained_state.items() if (k in model_dict and v.shape == model_dict[k].shape)}
+        model_dict.update(pretrained_state)
+        msg = 'Loaded {} parameters!'.format(len(pretrained_state))
+        print('Attention!!!')
+        print(msg)
+        print('Over!!!')
+        model.load_state_dict(model_dict, strict = False)
     
     return model
 
