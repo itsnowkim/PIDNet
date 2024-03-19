@@ -40,15 +40,26 @@ class Endoscope(BaseDataset):
 
         self.files = self.read_files()
 
-        # id 시작은 1번부터 시작. 0 번은 배경
-        self.label_mapping = {-1: ignore_label, 0: ignore_label, 
+        # 255 배경
+        self.label_mapping = {0: 0, 
                               1: 1, 2:2, 3:3, 4:4, 5:5, 6:6,
-                              7:7, 8:8, 9:9, 10:10, 11: 11, 12:12}
+                              7:7, 8:8, 9:9, 10:10, 11: 11,
+                              255:ignore_label
+                              }
         self.class_index_dict = {
-            1: 'Bone', 2: 'LF', 3: 'Vessel', 4: 'Fat',
-            5: 'SoftTissue', 6: 'Dura', 7: 'Disc',
-            8: 'Instrument', 9: 'Cage', 10: 'Screw', 11: 'Care', 12: 'BF'
+            0: 'Bone', 1: 'LF', 2: 'Vessel', 3: 'Fat',
+            4: 'SoftTissue', 5: 'Dura', 6: 'Disc',
+            7: 'Instrument', 8: 'Cage', 9:'Screw', 10: 'Care', 11: 'BF'
         }
+
+        # self.label_mapping = {-1: ignore_label, 0: ignore_label, 
+        #                       1: 1, 2:2, 3:3, 4:4, 5:5, 6:6,
+        #                       7:7, 8:8, 9:9, 10:10, 11: 11, 12:12}
+        # self.class_index_dict = {
+        #     1: 'Bone', 2: 'LF', 3: 'Vessel', 4: 'Fat',
+        #     5: 'SoftTissue', 6: 'Dura', 7: 'Disc',
+        #     8: 'Instrument', 9: 'Cage', 10: 'Screw', 11: 'Care', 12: 'BF'
+        # }
         
         # class weight 정의 - distribution 에 의해 정의?
         self.class_weights = None
@@ -78,12 +89,8 @@ class Endoscope(BaseDataset):
         
     def convert_label(self, label, inverse=False):
         temp = label.copy()
-        if inverse:
-            for v, k in self.label_mapping.items():
-                label[temp == k] = v
-        else:
-            for k, v in self.label_mapping.items():
-                label[temp == k] = v
+        for k, v in self.label_mapping.items():
+            label[temp == k] = v
         return label
 
     def __getitem__(self, index):

@@ -214,8 +214,9 @@ def main():
 
                 for index, IoU_value in enumerate(IoU_array):
                     # index 0번은 ignore, 배경이기 때문에 index 1번부터 get
-                    class_name = class_index_dict.get(index+1, f"Unknown class index: {index}")
+                    class_name = class_index_dict.get(index, f"Unknown class index: {index}")
                     logging.info(f"{class_name}: {IoU_value}")
+                logging.info(IoU_array)
             else:
                 logging.info(IoU_array)
 
