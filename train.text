@@ -9,4 +9,5 @@ python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endosco
 
 # eval
 python tools/eval.py --cfg configs/cityscapes/pidnet_small_cityscapes.yaml TEST.MODEL_FILE pretrained_models/cityscapes/PIDNet_S_Cityscapes_val.pt
+python tools/eval.py --cfg configs/endoscope/pidnet_small_endoscope.yaml TEST.MODEL_FILE output/endoscope/pidnet_small_endoscope/best.pt
 python tools/eval.py --cfg configs/endoscope/pidnet_small_endoscope3.yaml TEST.MODEL_FILE output/endoscope/pidnet_small_endoscope3/best.pt
