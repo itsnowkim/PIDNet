@@ -152,6 +152,3 @@ class Endoscope(BaseDataset):
             save_img = Image.fromarray(sv_img)
             # save_img = Image.fromarray(pred)
             save_img.save(os.path.join(sv_path, name[k]+'.png'))
-
-        
-        

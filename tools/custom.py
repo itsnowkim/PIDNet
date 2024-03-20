@@ -31,6 +31,7 @@ class_colors = {
     'Screw': (255, 165, 0),  # 주황색
     'Care': (64, 224, 208),  # 터콰이즈
     'BF':     (220, 20, 60),  # 밝은 빨간색
+    'Background': (0,0,0),  # 검정
 }
 
 custom_color_map = [
@@ -46,6 +47,7 @@ custom_color_map = [
     (255, 165, 0),  # 주황색
     (64, 224, 208),  # 터콰이즈
     (220, 20, 60),  # 밝은 빨간색
+    (0, 0, 0),  # 검정
 ]
 
 def parse_resolution(s):
@@ -90,22 +92,45 @@ def load_pretrained(model, pretrained):
 
     return model
 
+def draw_class_labels(img, class_colors, pred_list):
+    # 텍스트 시작 위치 초기화
+    start_x = img.shape[1] - 200  # 오른쪽에서 200픽셀 떨어진 곳에서 시작
+    start_y = img.shape[0] - 30 * len(class_colors)  # 이미지 하단을 기준으로 클래스 수에 따라 위치 결정
+    
+    for idx, item in enumerate(class_colors.items()):
+        class_name, color = item
+        # pred_list 에 존재하는 경우에만 레이블 박스와 텍스트 그리기
+        if pred_list[idx]:
+            cv2.rectangle(img, (start_x, start_y), (start_x + 20, start_y + 20), color, -1)
+            cv2.putText(img, class_name, (start_x + 30, start_y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+            start_y += 30  # 다음 레이블을 위해 y 위치 갱신
 
+    return img
 
 # 원본 이미지와 인퍼런스 결과를 혼합하기 위해 알파 블렌딩을 사용
-def blend_image_with_mask(original_img, mask, color_palete, alpha=0.5, gamma=0):
+def blend_image_with_mask(original_img, mask, color_palete, alpha=0.5, gamma=0, draw_text=False):
     # mask는 (height, width)의 2D 배열이고, 각 픽셀의 값은 해당 클래스의 인덱스입니다.
     # custom_color_map을 사용하여 mask에 색을 적용합니다.
     beta = 1 - alpha
     color_mask = np.zeros_like(original_img).astype(np.uint8)
     
-    print(mask.shape, color_mask.shape, original_img.shape)
-    
+    # mask 에 존재하는 class 를 따로 기록
+    pred_list = [0]*len(color_palete)
+
     for i, color in enumerate(color_palete):
         color_mask[mask == i] = color
+        # 만약 mask 에 i 가 있다면 pred_list 의 i 번째 index 는 1로 변경
+        if np.any(mask == i):
+            pred_list[i] = 1
     
     # 원본 이미지와 색상 마스크를 혼합합니다.
     blended_img = cv2.addWeighted(original_img, beta, color_mask, alpha, gamma)
+
+    # 조건에 따라서 텍스트 넣기
+    # 클래스 레이블과 색상 정보를 이미지에 그리기
+    if draw_text:
+        blended_img = draw_class_labels(blended_img, class_colors, pred_list)
+
     return blended_img
 
 if __name__ == '__main__':
@@ -138,14 +163,12 @@ if __name__ == '__main__':
             img = torch.from_numpy(img).unsqueeze(0).cuda()
             pred = model(img)
 
-            print(original_img.shape)
-
             # pred size 맞춰주기
             pred = F.interpolate(pred, size=original_img.shape[:2],
                                  mode='bilinear', align_corners=True)
             pred = torch.argmax(pred, dim=1).squeeze(0).cpu().numpy()
 
-            blended_img = blend_image_with_mask(original_img, pred, custom_color_map ,alpha=0.3)
+            blended_img = blend_image_with_mask(original_img, pred, custom_color_map ,alpha=0.5, draw_text=True)
             
             # image 저장하기 전 처리
             blended_img = Image.fromarray(blended_img)
