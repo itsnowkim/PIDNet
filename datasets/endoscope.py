@@ -15,7 +15,7 @@ class Endoscope(BaseDataset):
     def __init__(self, 
                  root, 
                  list_path,
-                 num_classes=11,
+                 num_classes=13, # 총 12개 class, 1개는 background
                  multi_scale=True, 
                  flip=True, 
                  ignore_label=255, 
@@ -44,13 +44,29 @@ class Endoscope(BaseDataset):
         self.label_mapping = {0: 0, 
                               1: 1, 2:2, 3:3, 4:4, 5:5, 6:6,
                               7:7, 8:8, 9:9, 10:10, 11: 11,
-                              255:ignore_label
+                              255:12
                               }
         self.class_index_dict = {
             0: 'Bone', 1: 'LF', 2: 'Vessel', 3: 'Fat',
             4: 'SoftTissue', 5: 'Dura', 6: 'Disc',
-            7: 'Instrument', 8: 'Cage', 9:'Screw', 10: 'Care', 11: 'BF'
+            7: 'Instrument', 8: 'Cage', 9:'Screw', 10: 'Care', 11: 'BF',
+            12: 'Background'
         }
+        self.custom_color_map = [
+            (153,153,153),  # 밝은 회색
+            (107,142, 35),  # 올리브색
+            (0, 255, 0),  # 초록색
+            (255, 255, 0),  # 노란색
+            (70,130,180),  # 청록색
+            (107, 102, 255), # 연한 보라색
+            (0, 0, 255),  # 파란색
+            (119, 11, 32), # 어두운 자주색
+            (  0,  0, 70),  # 매우 어두운 파란색
+            (255, 165, 0),  # 주황색
+            (64, 224, 208),  # 터콰이즈
+            (220, 20, 60),  # 밝은 빨간색
+            (0,0,0) # 검정색
+        ]
 
         # self.label_mapping = {-1: ignore_label, 0: ignore_label, 
         #                       1: 1, 2:2, 3:3, 4:4, 5:5, 6:6,
@@ -87,7 +103,7 @@ class Endoscope(BaseDataset):
                 })
         return files
         
-    def convert_label(self, label, inverse=False):
+    def convert_label(self, label):
         temp = label.copy()
         for k, v in self.label_mapping.items():
             label[temp == k] = v
@@ -125,10 +141,17 @@ class Endoscope(BaseDataset):
 
     def save_pred(self, preds, sv_path, name):
         preds = np.asarray(np.argmax(preds.cpu(), axis=1), dtype=np.uint8)
-        for i in range(preds.shape[0]):
-            pred = self.convert_label(preds[i], inverse=True)
-            save_img = Image.fromarray(pred)
-            save_img.save(os.path.join(sv_path, name[i]+'.png'))
+        for k in range(preds.shape[0]):
+            pred = self.convert_label(preds[k])
+            sv_img = np.zeros((1080, 1920, 3), dtype=np.uint8)
+
+            # 색상 적용
+            for i, color in enumerate(self.custom_color_map):
+                for j in range(3):
+                    sv_img[:,:,j][pred==i] = self.custom_color_map[i][j]
+            save_img = Image.fromarray(sv_img)
+            # save_img = Image.fromarray(pred)
+            save_img.save(os.path.join(sv_path, name[k]+'.png'))
 
         
         

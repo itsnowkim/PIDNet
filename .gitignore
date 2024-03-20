@@ -1,6 +1,10 @@
 # data file
 data/
+
+# output file
 samples/custom
+val_results
+
 
 # cache file
 */__pycache__/

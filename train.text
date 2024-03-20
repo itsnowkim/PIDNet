@@ -1,7 +1,8 @@
 # train
-python tools/train.py --cfg configs/endoscope/pidnet_small_endoscope2.yaml
+python tools/train.py --cfg configs/endoscope/pidnet_small_endoscope.yaml
 
 # infer
+python tools/default_custom.py --a 'pidnet-s' --p 'pretrained_models/cityscapes/PIDNet_S_Cityscapes_test.pt' --t '.png'
 python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endoscope/best.pt'
 python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endoscope2/best.pt'
 python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endoscope3/best.pt'

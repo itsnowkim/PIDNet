@@ -229,7 +229,7 @@ def get_pred_model(name, num_classes, custom=False):
     
     # load pretrained
     if custom:
-        print(custom)
+        print('custom : ', custom)
         pretrained_state = torch.load("pretrained_models/imagenet/PIDNet_S_ImageNet.pth.tar", map_location='cpu')['state_dict'] 
         model_dict = model.state_dict()
         pretrained_state = {k: v for k, v in pretrained_state.items() if (k in model_dict and v.shape == model_dict[k].shape)}
