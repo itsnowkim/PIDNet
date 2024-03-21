@@ -1,18 +1,29 @@
 # ------------------------------------------------------------------------------
 # Written by Jiacong Xu (jiacong.xu@tamu.edu)
 # ------------------------------------------------------------------------------
+import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import time
-from .model_utils import BasicBlock, Bottleneck, segmenthead, DAPPM, PAPPM, PagFM, Bag, Light_Bag
+from model_utils_speed import BasicBlock, Bottleneck, segmenthead, DAPPM, PAPPM, PagFM, Bag, Light_Bag
 import logging
 
 BatchNorm2d = nn.BatchNorm2d
 bn_mom = 0.1
 algc = False
 
+def parse_args():
+    parser = argparse.ArgumentParser(description='Speed Measurement')
+    
+    parser.add_argument('--a', help='pidnet-s, pidnet-m or pidnet-l', default='pidnet-s', type=str)
+    parser.add_argument('--c', help='number of classes', type=int, default=13)
+    parser.add_argument('--r', help='input resolution', type=int, nargs='+', default=(960,960))     
+    parser.add_argument('--p', help='dir for pretrained model', default='../pretrained_models/cityscapes/PIDNet_L_Cityscapes_test.pt', type=str)
 
+    args = parser.parse_args()
+
+    return args
 
 class PIDNet(nn.Module):
 
@@ -23,10 +34,10 @@ class PIDNet(nn.Module):
         # I Branch
         self.conv1 =  nn.Sequential(
                           nn.Conv2d(3,planes,kernel_size=3, stride=2, padding=1),
-                          BatchNorm2d(planes, momentum=bn_mom),
+                          #BatchNorm2d(planes, momentum=bn_mom),
                           nn.ReLU(inplace=True),
                           nn.Conv2d(planes,planes,kernel_size=3, stride=2, padding=1),
-                          BatchNorm2d(planes, momentum=bn_mom),
+                          #BatchNorm2d(planes, momentum=bn_mom),
                           nn.ReLU(inplace=True),
                       )
 
@@ -40,12 +51,12 @@ class PIDNet(nn.Module):
         # P Branch
         self.compression3 = nn.Sequential(
                                           nn.Conv2d(planes * 4, planes * 2, kernel_size=1, bias=False),
-                                          BatchNorm2d(planes * 2, momentum=bn_mom),
+                                          #BatchNorm2d(planes * 2, momentum=bn_mom),
                                           )
 
         self.compression4 = nn.Sequential(
                                           nn.Conv2d(planes * 8, planes * 2, kernel_size=1, bias=False),
-                                          BatchNorm2d(planes * 2, momentum=bn_mom),
+                                          #BatchNorm2d(planes * 2, momentum=bn_mom),
                                           )
         self.pag3 = PagFM(planes * 2, planes)
         self.pag4 = PagFM(planes * 2, planes)
@@ -60,11 +71,11 @@ class PIDNet(nn.Module):
             self.layer4_d = self._make_layer(Bottleneck, planes, planes, 1)
             self.diff3 = nn.Sequential(
                                         nn.Conv2d(planes * 4, planes, kernel_size=3, padding=1, bias=False),
-                                        BatchNorm2d(planes, momentum=bn_mom),
+                                        #BatchNorm2d(planes, momentum=bn_mom),
                                         )
             self.diff4 = nn.Sequential(
                                      nn.Conv2d(planes * 8, planes * 2, kernel_size=3, padding=1, bias=False),
-                                     BatchNorm2d(planes * 2, momentum=bn_mom),
+                                     #BatchNorm2d(planes * 2, momentum=bn_mom),
                                      )
             self.spp = PAPPM(planes * 16, ppm_planes, planes * 4)
             self.dfm = Light_Bag(planes * 4, planes * 4)
@@ -73,11 +84,11 @@ class PIDNet(nn.Module):
             self.layer4_d = self._make_single_layer(BasicBlock, planes * 2, planes * 2)
             self.diff3 = nn.Sequential(
                                         nn.Conv2d(planes * 4, planes * 2, kernel_size=3, padding=1, bias=False),
-                                        BatchNorm2d(planes * 2, momentum=bn_mom),
+                                        #BatchNorm2d(planes * 2, momentum=bn_mom),
                                         )
             self.diff4 = nn.Sequential(
                                      nn.Conv2d(planes * 8, planes * 2, kernel_size=3, padding=1, bias=False),
-                                     BatchNorm2d(planes * 2, momentum=bn_mom),
+                                     #BatchNorm2d(planes * 2, momentum=bn_mom),
                                      )
             self.spp = DAPPM(planes * 16, ppm_planes, planes * 4)
             self.dfm = Bag(planes * 4, planes * 4)
@@ -99,14 +110,13 @@ class PIDNet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-
     def _make_layer(self, block, inplanes, planes, blocks, stride=1):
         downsample = None
         if stride != 1 or inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(inplanes, planes * block.expansion,
                           kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(planes * block.expansion, momentum=bn_mom),
+                #nn.BatchNorm2d(planes * block.expansion, momentum=bn_mom),
             )
 
         layers = []
@@ -126,7 +136,7 @@ class PIDNet(nn.Module):
             downsample = nn.Sequential(
                 nn.Conv2d(inplanes, planes * block.expansion,
                           kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(planes * block.expansion, momentum=bn_mom),
+                #nn.BatchNorm2d(planes * block.expansion, momentum=bn_mom),
             )
 
         layer = block(inplanes, planes, stride, downsample, no_relu=True)
@@ -140,12 +150,11 @@ class PIDNet(nn.Module):
 
         x = self.conv1(x)
         x = self.layer1(x)
-        x = self.relu(self.layer2(self.relu(x))) # stage 2
-        x_ = self.layer3_(x) # P, stage 2->3
-        x_d = self.layer3_d(x) # D, stage 2->3
+        x = self.relu(self.layer2(self.relu(x)))
+        x_ = self.layer3_(x)
+        x_d = self.layer3_d(x)
         
-        # stage 3
-        x = self.relu(self.layer3(x)) # I
+        x = self.relu(self.layer3(x))
         x_ = self.pag3(x_, self.compression3(x))
         x_d = x_d + F.interpolate(
                         self.diff3(x),
@@ -154,7 +163,6 @@ class PIDNet(nn.Module):
         if self.augment:
             temp_p = x_
         
-        # stage 4
         x = self.relu(self.layer4(x))
         x_ = self.layer4_(self.relu(x_))
         x_d = self.layer4_d(self.relu(x_d))
@@ -166,8 +174,7 @@ class PIDNet(nn.Module):
                         mode='bilinear', align_corners=algc)
         if self.augment:
             temp_d = x_d
-
-        # stage 5
+            
         x_ = self.layer5_(self.relu(x_))
         x_d = self.layer5_d(self.relu(x_d))
         x = F.interpolate(
@@ -184,78 +191,58 @@ class PIDNet(nn.Module):
         else:
             return x_      
 
-def get_seg_model(cfg, imgnet_pretrained):
-    
-    if 's' in cfg.MODEL.NAME:
-        model = PIDNet(m=2, n=3, num_classes=cfg.DATASET.NUM_CLASSES, planes=32, ppm_planes=96, head_planes=128, augment=True)
-    elif 'm' in cfg.MODEL.NAME:
-        model = PIDNet(m=2, n=3, num_classes=cfg.DATASET.NUM_CLASSES, planes=64, ppm_planes=96, head_planes=128, augment=True)
-    else:
-        model = PIDNet(m=3, n=4, num_classes=cfg.DATASET.NUM_CLASSES, planes=64, ppm_planes=112, head_planes=256, augment=True)
-    
-    if imgnet_pretrained:
-        pretrained_state = torch.load(cfg.MODEL.PRETRAINED, map_location='cpu')['state_dict'] 
-        model_dict = model.state_dict()
-        pretrained_state = {k: v for k, v in pretrained_state.items() if (k in model_dict and v.shape == model_dict[k].shape)}
-        model_dict.update(pretrained_state)
-        msg = 'Loaded {} parameters!'.format(len(pretrained_state))
-        logging.info('Attention!!!')
-        logging.info(msg)
-        logging.info('Over!!!')
-        model.load_state_dict(model_dict, strict = False)
-    else:
-        pretrained_dict = torch.load(cfg.MODEL.PRETRAINED, map_location='cpu')
-        if 'state_dict' in pretrained_dict:
-            pretrained_dict = pretrained_dict['state_dict']
-        model_dict = model.state_dict()
-        pretrained_dict = {k[6:]: v for k, v in pretrained_dict.items() if (k[6:] in model_dict and v.shape == model_dict[k[6:]].shape)}
-        msg = 'Loaded {} parameters!'.format(len(pretrained_dict))
-        logging.info('Attention!!!')
-        logging.info(msg)
-        logging.info('Over!!!')
-        model_dict.update(pretrained_dict)
-        model.load_state_dict(model_dict, strict = False)
-    
-    return model
-
-def get_pred_model(name, num_classes, custom=False):
+def get_pred_model(name, num_classes):
     
     if 's' in name:
         model = PIDNet(m=2, n=3, num_classes=num_classes, planes=32, ppm_planes=96, head_planes=128, augment=False)
-        if custom:
-            pretrained_state = torch.load("pretrained_models/imagenet/PIDNet_S_ImageNet.pth.tar", map_location='cpu')['state_dict'] 
+        pretrained_state = torch.load("pretrained_models/imagenet/PIDNet_S_ImageNet.pth.tar", map_location='cpu')['state_dict'] 
     elif 'm' in name:
         model = PIDNet(m=2, n=3, num_classes=num_classes, planes=64, ppm_planes=96, head_planes=128, augment=False)
-        if custom:
-            pretrained_state = torch.load("pretrained_models/imagenet/PIDNet_M_ImageNet.pth.tar", map_location='cpu')['state_dict'] 
+        pretrained_state = torch.load("pretrained_models/imagenet/PIDNet_M_ImageNet.pth.tar", map_location='cpu')['state_dict'] 
     else:
         model = PIDNet(m=3, n=4, num_classes=num_classes, planes=64, ppm_planes=112, head_planes=256, augment=False)
     
     # load pretrained
-    if custom:
-        print('custom : ', custom)
-        model_dict = model.state_dict()
-        pretrained_state = {k: v for k, v in pretrained_state.items() if (k in model_dict and v.shape == model_dict[k].shape)}
-        model_dict.update(pretrained_state)
-        msg = 'Loaded {} parameters!'.format(len(pretrained_state))
-        print('Attention!!!')
-        print(msg)
-        print('Over!!!')
-        model.load_state_dict(model_dict, strict = False)
+    model_dict = model.state_dict()
+    pretrained_state = {k: v for k, v in pretrained_state.items() if (k in model_dict and v.shape == model_dict[k].shape)}
+    model_dict.update(pretrained_state)
+    msg = 'Loaded {} parameters!'.format(len(pretrained_state))
+    print('Attention!!!')
+    print(msg)
+    print('Over!!!')
+    model.load_state_dict(model_dict, strict = False)
     
     return model
 
-if __name__ == '__main__':
+def load_pretrained(model, pretrained):
+    pretrained_dict = torch.load(pretrained, map_location='cpu')
+    if 'state_dict' in pretrained_dict:
+        pretrained_dict = pretrained_dict['state_dict']
+    model_dict = model.state_dict()
+    pretrained_dict = {k[6:]: v for k, v in pretrained_dict.items()
+                        if k[6:] in model_dict.keys()}
     
+    # msg = 'Loaded {} parameters!'.format(len(pretrained_dict))
+
+    model_dict.update(pretrained_dict)
+    model.load_state_dict(model_dict)
+
+    return model
+
+if __name__ == '__main__':
+    args = parse_args()
     # Comment batchnorms here and in model_utils before testing speed since the batchnorm could be integrated into conv operation
     # (do not comment all, just the batchnorm following its corresponding conv layer)
     device = torch.device('cuda')
-    model = get_pred_model(name='pidnet_s', num_classes=19)
+    model = get_pred_model(name=args.a, num_classes=args.c)
+    # load model pretrained
+    model = load_pretrained(model, args.p).cuda()
+    
     model.eval()
     model.to(device)
     iterations = None
     
-    input = torch.randn(1, 3, 1024, 2048).cuda()
+    input = torch.randn(1, 3, args.r[0], args.r[1]).cuda()
     with torch.no_grad():
         for _ in range(10):
             model(input)
@@ -265,11 +252,10 @@ if __name__ == '__main__':
             iterations = 100
             while elapsed_time < 1:
                 torch.cuda.synchronize()
-                torch.cuda.synchronize()
                 t_start = time.time()
                 for _ in range(iterations):
                     model(input)
-                torch.cuda.synchronize()
+
                 torch.cuda.synchronize()
                 elapsed_time = time.time() - t_start
                 iterations *= 2
@@ -277,18 +263,23 @@ if __name__ == '__main__':
             iterations = int(FPS * 6)
     
         print('=========Speed Testing=========')
-        torch.cuda.synchronize()
+
         torch.cuda.synchronize()
         t_start = time.time()
         for _ in range(iterations):
             model(input)
         torch.cuda.synchronize()
-        torch.cuda.synchronize()
         elapsed_time = time.time() - t_start
         latency = elapsed_time / iterations * 1000
     torch.cuda.empty_cache()
     FPS = 1000 / latency
-    print(FPS)
+    
+    # ms/im 단위로 변환
+    ms_per_image = 1000 / FPS
+
+    # 결과 출력
+    print(f"{ms_per_image} ms/im")
+
     
     
     
