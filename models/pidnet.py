@@ -230,6 +230,8 @@ def get_pred_model(name, num_classes, custom=False):
             pretrained_state = torch.load("pretrained_models/imagenet/PIDNet_M_ImageNet.pth.tar", map_location='cpu')['state_dict'] 
     else:
         model = PIDNet(m=3, n=4, num_classes=num_classes, planes=64, ppm_planes=112, head_planes=256, augment=False)
+        if custom:
+            pretrained_state = torch.load("pretrained_models/imagenet/PIDNet_L_ImageNet.pth.tar", map_location='cpu')['state_dict'] 
     
     # load pretrained
     if custom:

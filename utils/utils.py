@@ -107,13 +107,14 @@ def create_logger(cfg, cfg_name, phase='train'):
     dataset = cfg.DATASET.DATASET
     model = cfg.MODEL.NAME
     cfg_name = os.path.basename(cfg_name).split('.')[0]
+    time_str = time.strftime('%Y-%m-%d-%H-%M')
 
-    final_output_dir = root_output_dir / dataset / cfg_name
+    final_output_dir = root_output_dir / dataset / cfg_name / time_str
 
     print('=> creating {}'.format(final_output_dir))
     final_output_dir.mkdir(parents=True, exist_ok=True)
 
-    time_str = time.strftime('%Y-%m-%d-%H-%M')
+
     log_file = '{}_{}_{}.log'.format(cfg_name, time_str, phase)
     final_log_file = final_output_dir / log_file
     head = '%(asctime)-15s %(message)s'
