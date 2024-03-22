@@ -139,23 +139,41 @@ def main():
     model = nn.DataParallel(model, device_ids=gpus).cuda()
 
     # optimizer
+    params_dict = dict(model.named_parameters())
+    params = [{'params': list(params_dict.values()), 'lr': config.TRAIN.LR}]
     if config.TRAIN.OPTIMIZER == 'sgd':
-        params_dict = dict(model.named_parameters())
-        params = [{'params': list(params_dict.values()), 'lr': config.TRAIN.LR}]
-
         optimizer = torch.optim.SGD(params,
                                 lr=config.TRAIN.LR,
                                 momentum=config.TRAIN.MOMENTUM,
                                 weight_decay=config.TRAIN.WD,
                                 nesterov=config.TRAIN.NESTEROV,
                                 )
+    elif config.TRAIN.OPTIMIZER == 'adam':
+        optimizer = torch.optim.Adam(params, lr=config.TRAIN.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.TRAIN.WD)
+    elif config.TRAIN.OPTIMIZER == 'adamw':
+        optimizer = torch.optim.AdamW(params, lr=config.TRAIN.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.TRAIN.WD)
+    elif config.TRAIN.OPTIMIZER == 'rmsprop':
+        optimizer = torch.optim.RMSprop(params, lr=config.TRAIN.LR, alpha=0.99, eps=1e-08, weight_decay=config.TRAIN.WD, momentum=config.TRAIN.MOMENTUM)
     else:
-        raise ValueError('Only Support SGD optimizer')
+        raise ValueError(f"Unsupported optimizer: {config.TRAIN.OPTIMIZER}")
+    
+    # scheduler
+    # lr - step size, gamma 설정 필요
+    # cosine - tmax 설정 필요 50, 100, 200, 450
+    if config.TRAIN.SCHEDULER == 'lr':
+        # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config.SCHEDULER['STEP_SIZE'], gamma=config.SCHEDULER['GAMMA'])
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
+    elif config.TRAIN.SCHEDULER == 'lr':
+        # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.SCHEDULER['T_MAX'])
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+    else:
+        raise ValueError(f"Unsupported scheduler type: {config.TRAIN.SCHEDULER}")
 
     epoch_iters = int(train_dataset.__len__() / config.TRAIN.BATCH_SIZE_PER_GPU / len(gpus))
         
     best_mIoU = 0
     last_epoch = 0
+    best_epoch = 0
     flag_rm = config.TRAIN.RESUME
     if config.TRAIN.RESUME:
         model_state_file = os.path.join(final_output_dir, 'checkpoint.pth.tar')
@@ -163,10 +181,13 @@ def main():
             checkpoint = torch.load(model_state_file, map_location={'cuda:0': 'cpu'})
             best_mIoU = checkpoint['best_mIoU']
             last_epoch = checkpoint['epoch']
+            best_epoch = checkpoint['best_epoch']
             dct = checkpoint['state_dict']
             
             model.module.model.load_state_dict({k.replace('model.', ''): v for k, v in dct.items() if k.startswith('model.')})
             optimizer.load_state_dict(checkpoint['optimizer'])
+            # scheduler 분기 처리?
+            scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
             logger.info("=> loaded checkpoint (epoch {})".format(checkpoint['epoch']))
 
     start = timeit.default_timer()
@@ -183,6 +204,9 @@ def main():
         train(config, epoch, config.TRAIN.END_EPOCH, 
                   epoch_iters, config.TRAIN.LR, num_iters,
                   trainloader, optimizer, model, writer_dict)
+        
+        # scheduler update
+        scheduler.step()
 
         if flag_rm == 1 or (epoch % 5 == 0 and epoch < real_end - 100) or (epoch >= real_end - 100):
             valid_loss, mean_IoU, IoU_array = validate(config, testloader, model, writer_dict)
@@ -191,16 +215,20 @@ def main():
 
         logger.info('=> saving checkpoint to {}'.format(
             final_output_dir + 'checkpoint.pth.tar'))
+        # updaete - IoU 갱신
+        if mean_IoU > best_mIoU:
+            best_mIoU = mean_IoU
+            best_epoch = epoch
+            torch.save(model.module.state_dict(),
+                    os.path.join(final_output_dir, 'best.pt'))
         torch.save({
             'epoch': epoch+1,
             'best_mIoU': best_mIoU,
+            'best_epoch': best_epoch,
             'state_dict': model.module.state_dict(),
             'optimizer': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
         }, os.path.join(final_output_dir,'checkpoint.pth.tar'))
-        if mean_IoU > best_mIoU:
-            best_mIoU = mean_IoU
-            torch.save(model.module.state_dict(),
-                    os.path.join(final_output_dir, 'best.pt'))
         msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}'.format(
                     valid_loss, mean_IoU, best_mIoU)
         

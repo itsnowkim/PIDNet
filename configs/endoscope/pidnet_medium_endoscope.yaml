@@ -35,6 +35,7 @@ TRAIN:
   END_EPOCH: 450
   RESUME: false
   OPTIMIZER: sgd
+  SCHEDULER: lr
   LR: 0.001
   WD: 0.0005
   MOMENTUM: 0.9
