@@ -6,8 +6,7 @@ python tools/train.py --cfg configs/endoscope/pidnet_medium_endoscope.yaml
 # infer
 python tools/default_custom.py --a 'pidnet-s' --p 'pretrained_models/cityscapes/PIDNet_S_Cityscapes_test.pt' --t '.png'
 python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endoscope/best.pt'
-python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endoscope2/best.pt'
-python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endoscope3/best.pt'
+python tools/custom.py --a 'pidnet-m' --p 'output/endoscope/pidnet_medium_endoscope/2024-03-22-17-59/best.pt'
 
 # eval
 python tools/eval.py --cfg configs/cityscapes/pidnet_small_cityscapes.yaml TEST.MODEL_FILE pretrained_models/cityscapes/PIDNet_S_Cityscapes_val.pt

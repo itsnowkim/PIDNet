@@ -158,12 +158,12 @@ def main():
         raise ValueError(f"Unsupported optimizer: {config.TRAIN.OPTIMIZER}")
     
     # scheduler
-    # lr - step size, gamma 설정 필요
+    # step - step size, gamma 설정 필요
     # cosine - tmax 설정 필요 50, 100, 200, 450
-    if config.TRAIN.SCHEDULER == 'lr':
+    if config.TRAIN.SCHEDULER == 'step':
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config.SCHEDULER['STEP_SIZE'], gamma=config.SCHEDULER['GAMMA'])
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
-    elif config.TRAIN.SCHEDULER == 'lr':
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=150, gamma=0.1)
+    elif config.TRAIN.SCHEDULER == 'cosine':
         # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.SCHEDULER['T_MAX'])
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
     else:
