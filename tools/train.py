@@ -20,6 +20,7 @@ from tensorboardX import SummaryWriter
 import _init_paths
 import models
 import datasets
+import csv
 from configs import config
 from configs import update_config
 from utils.criterion import CrossEntropy, OhemCrossEntropy, BondaryLoss
@@ -102,8 +103,6 @@ def main():
         pin_memory=False,
         drop_last=True)
     
-    # import pdb; pdb.set_trace()
-
 
     test_size = (config.TEST.IMAGE_SIZE[1], config.TEST.IMAGE_SIZE[0])
     test_dataset = eval('datasets.'+config.DATASET.DATASET)(
@@ -169,7 +168,7 @@ def main():
     else:
         raise ValueError(f"Unsupported scheduler type: {config.TRAIN.SCHEDULER}")
 
-    epoch_iters = int(train_dataset.__len__() / config.TRAIN.BATCH_SIZE_PER_GPU / len(gpus))
+    epoch_iters = int(train_dataset.__len__() / config.TRAIN.BATCH_SIZE_PER_GPU / len(gpus))   
         
     best_mIoU = 0
     last_epoch = 0
@@ -195,32 +194,64 @@ def main():
     num_iters = config.TRAIN.END_EPOCH * epoch_iters
     real_end = 120+1 if 'camvid' in config.DATASET.TRAIN_SET else end_epoch
     
+    # csv 설정
+    csv_file = os.path.join(final_output_dir, 'results.csv')
+    fieldnames = ['epoch', 'lr', 'train/acc', 'train/loss', 'train/sem_loss', 'train/bce_loss', 'train/sb_loss',
+                  'val/loss', 'val/sem_loss', 'val/bce_loss', 'val/sb_loss', 'mean_IoU',]
+    
+    # class IoU fieldname 추가
+    for _, name in train_dataset.class_index_dict.items():
+        fieldnames.append(name)
+
+    # 파일이 존재하지 않으면 새로운 파일 생성 및 컬럼명 작성
+    if not os.path.isfile(csv_file):
+        with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+    
     for epoch in range(last_epoch, real_end):
 
         current_trainloader = trainloader
         if current_trainloader.sampler is not None and hasattr(current_trainloader.sampler, 'set_epoch'):
             current_trainloader.sampler.set_epoch(epoch)
 
-        train(config, epoch, config.TRAIN.END_EPOCH, 
+        train_res_dict = train(config, epoch, config.TRAIN.END_EPOCH, 
                   epoch_iters, config.TRAIN.LR, num_iters,
                   trainloader, optimizer, model, writer_dict)
         
         # scheduler update
         scheduler.step()
 
-        if flag_rm == 1 or (epoch % 5 == 0 and epoch < real_end - 100) or (epoch >= real_end - 100):
-            valid_loss, mean_IoU, IoU_array = validate(config, testloader, model, writer_dict)
+        # validate in all epoch
+        valid_loss, mean_IoU, IoU_array, val_res_dict = validate(config, testloader, model, writer_dict)
         if flag_rm == 1:
             flag_rm = 0
 
-        logger.info('=> saving checkpoint to {}'.format(
-            final_output_dir + 'checkpoint.pth.tar'))
+        logger.info('=> saving checkpoint to {}'.format(final_output_dir + 'checkpoint.pth.tar'))
+        
+        # csv 에 train_res, val_res 저장
+        with open(csv_file, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            result_row = {}
+            # class 결과 먼저 작성
+            for index, IoU_value in enumerate(IoU_array):
+                class_name = train_dataset.class_index_dict.get(index, f"Unknown class index: {index}")
+                result_row[class_name] = IoU_value
+            
+            # result row 에 train, val result 통합
+            result_row.update(train_res_dict)
+            result_row.update(val_res_dict)
+
+            writer.writerow(result_row)
+
         # updaete - IoU 갱신
         if mean_IoU > best_mIoU:
             best_mIoU = mean_IoU
             best_epoch = epoch
             torch.save(model.module.state_dict(),
                     os.path.join(final_output_dir, 'best.pt'))
+        
+        # save pth
         torch.save({
             'epoch': epoch+1,
             'best_mIoU': best_mIoU,
@@ -229,24 +260,21 @@ def main():
             'optimizer': optimizer.state_dict(),
             'scheduler_state_dict': scheduler.state_dict(),
         }, os.path.join(final_output_dir,'checkpoint.pth.tar'))
-        msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}'.format(
-                    valid_loss, mean_IoU, best_mIoU)
+        msg = 'Loss: {:.3f}, MeanIU: {: 4.4f}, Best_mIoU: {: 4.4f}'.format(valid_loss, mean_IoU, best_mIoU)
         
-        # validate 를 하지 않은 경우 msg 출력하지 않음
-        if flag_rm == 1 or (epoch % 5 == 0 and epoch < real_end - 100) or (epoch >= real_end - 100):
-            logging.info(msg)
-        
-            # class 이름도 함께 출력하기
-            if train_dataset.class_index_dict:
-                class_index_dict = train_dataset.class_index_dict
+        logging.info(msg)
+    
+        # class 이름도 함께 출력하기
+        if train_dataset.class_index_dict:
+            class_index_dict = train_dataset.class_index_dict
 
-                for index, IoU_value in enumerate(IoU_array):
-                    # index 0번은 ignore, 배경이기 때문에 index 1번부터 get
-                    class_name = class_index_dict.get(index, f"Unknown class index: {index}")
-                    logging.info(f"{class_name}: {IoU_value}")
-                logging.info(IoU_array)
-            else:
-                logging.info(IoU_array)
+            for index, IoU_value in enumerate(IoU_array):
+                # index 0번은 ignore, 배경이기 때문에 index 1번부터 get
+                class_name = class_index_dict.get(index, f"Unknown class index: {index}")
+                logging.info(f"{class_name}: {IoU_value}")
+            logging.info(IoU_array)
+        else:
+            logging.info(IoU_array)
 
     # save final state
     torch.save(model.module.state_dict(),

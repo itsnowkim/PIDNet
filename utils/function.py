@@ -33,6 +33,11 @@ def train(config, epoch, num_epoch, epoch_iters, base_lr,
     writer = writer_dict['writer']
     global_steps = writer_dict['train_global_steps']
 
+    # train res return
+    result_dict = {
+        'epoch' : epoch,
+    }
+
     for i_iter, batch in enumerate(trainloader, 0):
         images, labels, bd_gts, _, _ = batch
         images = images.cuda()
@@ -58,28 +63,44 @@ def train(config, epoch, num_epoch, epoch_iters, base_lr,
         avg_sem_loss.update(loss_list[0].mean().item())
         avg_bce_loss.update(loss_list[1].mean().item())
 
-        lr = adjust_learning_rate(optimizer,
-                                  base_lr,
-                                  num_iters,
-                                  i_iter+cur_iters)
+        # adjust learning rate 일시 중단
+        # lr = adjust_learning_rate(optimizer, base_lr, num_iters, i_iter+cur_iters)
 
         if i_iter % config.PRINT_FREQ == 0:
             msg = 'Epoch: [{}/{}] Iter:[{}/{}], Time: {:.2f}, ' \
                   'lr: {}, Loss: {:.6f}, Acc:{:.6f}, Semantic loss: {:.6f}, BCE loss: {:.6f}, SB loss: {:.6f}' .format(
-                      epoch, num_epoch, i_iter, epoch_iters,
-                      batch_time.average(), [x['lr'] for x in optimizer.param_groups], ave_loss.average(),
-                      ave_acc.average(), avg_sem_loss.average(), avg_bce_loss.average(),ave_loss.average()-avg_sem_loss.average()-avg_bce_loss.average())
+                      epoch, num_epoch, i_iter, epoch_iters, batch_time.average(),
+                      [x['lr'] for x in optimizer.param_groups], ave_loss.average(), ave_acc.average(),
+                      avg_sem_loss.average(), avg_bce_loss.average(),
+                      ave_loss.average()-avg_sem_loss.average()-avg_bce_loss.average())
             logging.info(msg)
 
     writer.add_scalar('train_loss', ave_loss.average(), global_steps)
     writer_dict['train_global_steps'] = global_steps + 1
 
+    # return result dict
+    result_dict['lr'] = [x['lr'] for x in optimizer.param_groups][0]
+    result_dict['train/acc'] = ave_acc.average()
+    result_dict['train/loss'] = ave_loss.average()
+    result_dict['train/sem_loss'] = avg_sem_loss.average()
+    result_dict['train/bce_loss'] = avg_bce_loss.average()
+    result_dict['train/sb_loss'] = ave_loss.average()-avg_sem_loss.average()-avg_bce_loss.average()
+
+    return result_dict
+
 def validate(config, testloader, model, writer_dict):
     model.eval()
+    ave_acc  = AverageMeter()
     ave_loss = AverageMeter()
+    avg_sem_loss = AverageMeter()
+    avg_bce_loss = AverageMeter()
     nums = config.MODEL.NUM_OUTPUTS
     confusion_matrix = np.zeros(
         (config.DATASET.NUM_CLASSES, config.DATASET.NUM_CLASSES, nums))
+    
+    # val res return
+    result_dict = {}
+
     with torch.no_grad():
         for idx, batch in enumerate(testloader):
             image, label, bd_gts, _, _ = batch
@@ -88,7 +109,7 @@ def validate(config, testloader, model, writer_dict):
             label = label.long().cuda()
             bd_gts = bd_gts.float().cuda()
 
-            losses, pred, _, _ = model(image, label, bd_gts)
+            losses, pred, acc, loss_list = model(image, label, bd_gts)
             if not isinstance(pred, (list, tuple)):
                 pred = [pred]
             for i, x in enumerate(pred):
@@ -109,7 +130,13 @@ def validate(config, testloader, model, writer_dict):
                 print(idx)
 
             loss = losses.mean()
+            acc  = acc.mean()
+
+            # update average loss
             ave_loss.update(loss.item())
+            ave_acc.update(acc.item())
+            avg_sem_loss.update(loss_list[0].mean().item())
+            avg_bce_loss.update(loss_list[1].mean().item())
 
     for i in range(nums):
         pos = confusion_matrix[..., i].sum(1)
@@ -122,7 +149,6 @@ def validate(config, testloader, model, writer_dict):
         # mean_IoU = IoU_array.mean()
         mean_IoU = IoU_array[IoU_array != 0].mean()
 
-        
         logging.info('{} {} {}'.format(i, IoU_array, mean_IoU))
 
     writer = writer_dict['writer']
@@ -130,7 +156,15 @@ def validate(config, testloader, model, writer_dict):
     writer.add_scalar('valid_loss', ave_loss.average(), global_steps)
     writer.add_scalar('valid_mIoU', mean_IoU, global_steps)
     writer_dict['valid_global_steps'] = global_steps + 1
-    return ave_loss.average(), mean_IoU, IoU_array
+
+    # return result dict
+    result_dict['val/loss'] = ave_loss.average()
+    result_dict['val/sem_loss'] = avg_sem_loss.average()
+    result_dict['val/bce_loss'] = avg_bce_loss.average()
+    result_dict['val/sb_loss'] = ave_loss.average()-avg_sem_loss.average()-avg_bce_loss.average()
+    result_dict['mean_IoU'] = mean_IoU
+
+    return ave_loss.average(), mean_IoU, IoU_array, result_dict
 
 
 def testval(config, test_dataset, testloader, model,
