@@ -4,7 +4,7 @@ data/
 # output file
 samples/custom
 val_results
-
+*.csv
 
 # cache file
 */__pycache__/
