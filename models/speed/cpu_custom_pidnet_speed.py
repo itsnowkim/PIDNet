@@ -232,18 +232,18 @@ def load_pretrained(model, pretrained):
 
 if __name__ == '__main__':
     args = parse_args()
-    # Comment batchnorms here and in model_utils before testing speed since the batchnorm could be integrated into conv operation
-    # (do not comment all, just the batchnorm following its corresponding conv layer)
-    device = torch.device('cuda')
+    # CPU 설정으로 변경
+    device = torch.device('cpu')
     model = get_pred_model(name=args.a, num_classes=args.c)
-    # load model pretrained
-    model = load_pretrained(model, args.p).cuda()
+    # 모델을 CPU로 로드
+    model = load_pretrained(model, args.p).to(device)
     
     model.eval()
-    model.to(device)
+    
     iterations = None
     
-    input = torch.randn(1, 3, args.r[0], args.r[1]).cuda()
+    # 입력 데이터를 CPU로 설정
+    input = torch.randn(1, 3, args.r[0], args.r[1]).to(device)
     with torch.no_grad():
         # warm up
         for _ in range(10):
@@ -253,12 +253,10 @@ if __name__ == '__main__':
             elapsed_time = 0
             iterations = 100
             while elapsed_time < 1:
-                torch.cuda.synchronize()
                 t_start = time.time()
                 for _ in range(iterations):
                     model(input)
 
-                torch.cuda.synchronize()
                 elapsed_time = time.time() - t_start
                 iterations *= 2
             FPS = iterations / elapsed_time
@@ -266,16 +264,14 @@ if __name__ == '__main__':
     
         print('=========Speed Testing=========')
 
-        torch.cuda.synchronize()
         t_start = time.time()
         for _ in range(iterations):
             model(input)
-        torch.cuda.synchronize()
         elapsed_time = time.time() - t_start
         latency = elapsed_time / iterations * 1000
         FPS = iterations / elapsed_time
         
-        torch.cuda.empty_cache()
+        # GPU 관련 메모리 해제 코드는 CPU에서는 필요 없으므로 제거
 
         # 결과 출력
         print(f"{latency} ms/im")

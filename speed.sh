@@ -1,0 +1,3 @@
+python models/speed/cpu_custom_pidnet_speed.py --a 'pidnet-l' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_large_endoscope2/2024-03-26-22-41/best.pt'
+python models/speed/cpu_custom_pidnet_speed.py --a 'pidnet-m' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_medium_endoscope2/2024-03-26-20-38/best.pt'
+python models/speed/cpu_custom_pidnet_speed.py --a 'pidnet-s' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_small_endoscope2/2024-03-26-18-27/best.pt'

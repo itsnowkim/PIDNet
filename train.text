@@ -5,13 +5,34 @@ python tools/train.py --cfg configs/endoscope/pidnet_medium_endoscope.yaml
 
 # infer
 python tools/default_custom.py --a 'pidnet-s' --p 'pretrained_models/cityscapes/PIDNet_S_Cityscapes_test.pt' --t '.png'
-python tools/custom.py --a 'pidnet-s' --p 'output/endoscope/pidnet_small_endoscope/best.pt'
-python tools/custom.py --a 'pidnet-m' --p 'output/endoscope/pidnet_medium_endoscope/2024-03-22-17-59/best.pt'
+
+python tools/custom.py --a 'pidnet-s' --s '1088 1088' --p 'output/endoscope/pidnet_small_endoscope2/2024-03-26-18-27/best.pt'
+python tools/custom.py --a 'pidnet-m' --s '1088 1088' --p 'output/endoscope/pidnet_medium_endoscope2/2024-03-26-20-38/best.pt'
+python tools/custom.py --a 'pidnet-l' --s '1088 1088' --p 'output/endoscope/pidnet_large_endoscope2/2024-03-26-22-41/best.pt'
+
+python tools/custom.py --a 'pidnet-s' --s '960 960' --p 'output/endoscope/pidnet_small_endoscope/2024-03-27-00-49/best.pt'
+python tools/custom.py --a 'pidnet-m' --s '960 960' --p 'output/endoscope/pidnet_medium_endoscope/2024-03-27-02-40/best.pt'
+python tools/custom.py --a 'pidnet-l' --s '960 960' --p 'output/endoscope/pidnet_large_endoscope/2024-03-27-04-38/best.pt'
 
 # eval
-python tools/eval.py --cfg configs/cityscapes/pidnet_small_cityscapes.yaml TEST.MODEL_FILE pretrained_models/cityscapes/PIDNet_S_Cityscapes_val.pt
-python tools/eval.py --cfg configs/endoscope/pidnet_small_endoscope2.yaml TEST.MODEL_FILE output/endoscope/pidnet_small_endoscope2/best.pt
-python tools/eval.py --cfg configs/endoscope/pidnet_small_endoscope3.yaml TEST.MODEL_FILE output/endoscope/pidnet_small_endoscope3/best.pt
+python tools/eval.py --cfg configs/endoscope/pidnet_small_endoscope2.yaml TEST.MODEL_FILE output/endoscope/pidnet_small_endoscope2/2024-03-26-18-27/best.pt
+python tools/eval.py --cfg configs/endoscope/pidnet_medium_endoscope2.yaml TEST.MODEL_FILE output/endoscope/pidnet_medium_endoscope2/2024-03-26-20-38/best.pt
+python tools/eval.py --cfg configs/endoscope/pidnet_large_endoscope2.yaml TEST.MODEL_FILE output/endoscope/pidnet_large_endoscope2/2024-03-26-22-41/best.pt
+
+python tools/eval.py --cfg configs/endoscope/pidnet_small_endoscope.yaml TEST.MODEL_FILE output/endoscope/pidnet_small_endoscope/2024-03-27-00-49/best.pt
+python tools/eval.py --cfg configs/endoscope/pidnet_medium_endoscope.yaml TEST.MODEL_FILE output/endoscope/pidnet_medium_endoscope/2024-03-27-02-40/best.pt
+python tools/eval.py --cfg configs/endoscope/pidnet_large_endoscope.yaml TEST.MODEL_FILE output/endoscope/pidnet_large_endoscope/2024-03-27-04-38/best.pt
 
 # speed
-python models/speed/custom_pidnet_speed.py --a 'pidnet-s' --c 13 --r 960 960 --p 'output/endoscope/pidnet_small_endoscope2/best.pt'
+python models/speed/custom_pidnet_speed.py --a 'pidnet-s' --c 13 --r 960 960 --p 'output/endoscope/pidnet_small_endoscope/2024-03-27-00-49/best.pt'
+python models/speed/custom_pidnet_speed.py --a 'pidnet-m' --c 13 --r 960 960 --p 'output/endoscope/pidnet_medium_endoscope/2024-03-27-02-40/best.pt'
+python models/speed/custom_pidnet_speed.py --a 'pidnet-l' --c 13 --r 960 960 --p 'output/endoscope/pidnet_large_endoscope/2024-03-27-04-38/best.pt'
+
+python models/speed/custom_pidnet_speed.py --a 'pidnet-s' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_small_endoscope2/2024-03-26-18-27/best.pt'
+python models/speed/custom_pidnet_speed.py --a 'pidnet-m' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_medium_endoscope2/2024-03-26-20-38/best.pt'
+python models/speed/custom_pidnet_speed.py --a 'pidnet-l' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_large_endoscope2/2024-03-26-22-41/best.pt'
+
+python models/speed/cpu_custom_pidnet_speed.py --a 'pidnet-s' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_small_endoscope2/2024-03-26-18-27/best.pt'
+python models/speed/cpu_custom_pidnet_speed.py --a 'pidnet-m' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_medium_endoscope2/2024-03-26-20-38/best.pt'
+python models/speed/cpu_custom_pidnet_speed.py --a 'pidnet-l' --c 13 --r 1088 1088 --p 'output/endoscope/pidnet_large_endoscope2/2024-03-26-22-41/best.pt'
+
