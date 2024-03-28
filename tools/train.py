@@ -26,7 +26,7 @@ from configs import update_config
 from utils.criterion import CrossEntropy, OhemCrossEntropy, BondaryLoss
 from utils.function import train, validate
 from utils.utils import create_logger, FullModel
-
+from utils.scheduler import CosineAnnealingWarmUpRestarts
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train segmentation network')
@@ -139,7 +139,10 @@ def main():
 
     # optimizer
     params_dict = dict(model.named_parameters())
-    params = [{'params': list(params_dict.values()), 'lr': config.TRAIN.LR}]
+    if config.TRAIN.SCHEDULER == 'cosinewarm':
+        params = [{'params': list(params_dict.values()), 'lr': 0}]
+    else:
+        params = [{'params': list(params_dict.values()), 'lr': config.TRAIN.LR}]
     if config.TRAIN.OPTIMIZER == 'sgd':
         optimizer = torch.optim.SGD(params,
                                 lr=config.TRAIN.LR,
@@ -148,7 +151,10 @@ def main():
                                 nesterov=config.TRAIN.NESTEROV,
                                 )
     elif config.TRAIN.OPTIMIZER == 'adam':
-        optimizer = torch.optim.Adam(params, lr=config.TRAIN.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.TRAIN.WD)
+        if config.TRAIN.SCHEDULER == 'cosinewarm':
+            optimizer = torch.optim.Adam(params, lr=0, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.TRAIN.WD)
+        else:
+            optimizer = torch.optim.Adam(params, lr=config.TRAIN.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.TRAIN.WD)
     elif config.TRAIN.OPTIMIZER == 'adamw':
         optimizer = torch.optim.AdamW(params, lr=config.TRAIN.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=config.TRAIN.WD)
     elif config.TRAIN.OPTIMIZER == 'rmsprop':
@@ -161,10 +167,14 @@ def main():
     # cosine - tmax 설정 필요 50, 100, 200, 450
     if config.TRAIN.SCHEDULER == 'step':
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=config.SCHEDULER['STEP_SIZE'], gamma=config.SCHEDULER['GAMMA'])
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=150, gamma=0.1)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.1)
     elif config.TRAIN.SCHEDULER == 'cosine':
         # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=config.SCHEDULER['T_MAX'])
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
+    elif config.TRAIN.SCHEDULER == 'cosinewarm':
+        # T_0:restart주기, T_mult=반복될 주기의 길이에 곱할 factor, eta_max=최대 lr,  T_up=warmup 에 필요한 epoch 수, gamma=진폭 곱)
+        scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=30, T_mult=1, eta_max=config.TRAIN.LR,  T_up=10, gamma=0.5)
+        print('scheduler : cosinewarm')
     else:
         raise ValueError(f"Unsupported scheduler type: {config.TRAIN.SCHEDULER}")
 
@@ -197,7 +207,7 @@ def main():
     # csv 설정
     csv_file = os.path.join(final_output_dir, 'results.csv')
     fieldnames = ['epoch', 'lr', 'train/acc', 'train/loss', 'train/sem_loss', 'train/bce_loss', 'train/sb_loss',
-                  'val/loss', 'val/sem_loss', 'val/bce_loss', 'val/sb_loss', 'mean_IoU',]
+                  'val/acc', 'val/loss', 'val/sem_loss', 'val/bce_loss', 'val/sb_loss', 'mean_IoU',]
     
     # class IoU fieldname 추가
     for _, name in train_dataset.class_index_dict.items():
@@ -217,10 +227,7 @@ def main():
 
         train_res_dict = train(config, epoch, config.TRAIN.END_EPOCH, 
                   epoch_iters, config.TRAIN.LR, num_iters,
-                  trainloader, optimizer, model, writer_dict)
-        
-        # scheduler update
-        scheduler.step()
+                  trainloader, optimizer, model, writer_dict, scheduler)
 
         # validate in all epoch
         valid_loss, mean_IoU, IoU_array, val_res_dict = validate(config, testloader, model, writer_dict)
