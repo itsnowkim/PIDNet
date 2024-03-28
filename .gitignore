@@ -12,6 +12,7 @@ val_results
 # logs
 *.log
 log/
+tools/tensorboard_logs
 
 # model weight
 *.pt
