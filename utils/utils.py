@@ -53,12 +53,15 @@ class FullModel(nn.Module):
     # bd_label = torch.where(F.sigmoid(outputs[-1][:,0,:,:])>0.8, labels, filler)
     # loss_sb = self.sem_loss(outputs[-2], bd_label)
     try:
-        bd_label = torch.where(torch.sigmoid(outputs[-1][:,0,:,:])>0.7, labels, filler)
+        bd_label = torch.where(torch.sigmoid(outputs[-1][:,0,:,:])>0.8, labels, filler)
         loss_sb = self.sem_loss([outputs[-2]], bd_label)
     except:
         loss_sb = self.sem_loss([outputs[-2]], labels)
     loss = loss_s + loss_b + loss_sb
 
+    # ave_loss : loss (loss_sb + loss_s + loss_b)(loss_sb = semantic + boundary loss)
+    # loss_s : avg_sem_loss (semantic loss)
+    # loss_b : avg_bce_loss (boundary loss)
     return torch.unsqueeze(loss,0), outputs[:-1], acc, [loss_s, loss_b]
 
 

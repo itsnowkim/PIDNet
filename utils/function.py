@@ -19,7 +19,7 @@ from utils.utils import adjust_learning_rate
 
 
 def train(config, epoch, num_epoch, epoch_iters, base_lr,
-          num_iters, trainloader, optimizer, model, writer_dict):
+          num_iters, trainloader, optimizer, model, writer_dict, scheduler):
     # Training
     model.train()
 
@@ -74,6 +74,11 @@ def train(config, epoch, num_epoch, epoch_iters, base_lr,
                       avg_sem_loss.average(), avg_bce_loss.average(),
                       ave_loss.average()-avg_sem_loss.average()-avg_bce_loss.average())
             logging.info(msg)
+
+    # import pdb; pdb.set_trace();
+    # scheduler update
+    scheduler.step()
+    print(f"curr lr : {scheduler.get_lr()}")
 
     writer.add_scalar('train_loss', ave_loss.average(), global_steps)
     writer_dict['train_global_steps'] = global_steps + 1
@@ -158,6 +163,7 @@ def validate(config, testloader, model, writer_dict):
     writer_dict['valid_global_steps'] = global_steps + 1
 
     # return result dict
+    result_dict['val/acc'] = ave_acc.average()
     result_dict['val/loss'] = ave_loss.average()
     result_dict['val/sem_loss'] = avg_sem_loss.average()
     result_dict['val/bce_loss'] = avg_bce_loss.average()
