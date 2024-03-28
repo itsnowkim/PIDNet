@@ -11,3 +11,5 @@ tensorboardX>=1.6
 tqdm
 ninja
 opencv-python
+matplotlib
+tensorboard
